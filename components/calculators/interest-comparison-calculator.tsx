@@ -226,7 +226,7 @@ export default function InterestComparisonCalculator() {
                       index="rate"
                       categories={["payment", "interest"]}
                       colors={["#3b82f6", "#ef4444"]}
-                      valueFormatter={(value) => formatCurrency(value)}
+                      valueFormatter={(value: number) => formatCurrency(value)}
                       className="h-full w-full"
                     />
                   </div>
@@ -305,9 +305,7 @@ export default function InterestComparisonCalculator() {
                       index="term"
                       categories={["payment", "interest"]}
                       colors={["#3b82f6", "#ef4444"]}
-                      valueFormatter={(value, category) =>
-                        category === "interest" ? formatCurrency(value * 10) : formatCurrency(value)
-                      }
+                      valueFormatter={(value: number) => formatCurrency(value)}
                       className="h-full w-full"
                     />
                   </div>

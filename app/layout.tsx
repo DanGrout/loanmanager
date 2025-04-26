@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 import { Lato } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
+import { CurrencyProvider } from "@/lib/currency-context"
 import Header from "@/components/header"
 
 const lato = Lato({
@@ -25,10 +26,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${lato.variable} font-sans antialiased`}>
+      <body className={`${lato.variable} font-sans antialiased`} suppressHydrationWarning>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          <Header />
-          <main className="min-h-screen pt-16 pb-8">{children}</main>
+          <CurrencyProvider>
+            <Header />
+            <main className="min-h-screen pt-16 pb-8">{children}</main>
+          </CurrencyProvider>
         </ThemeProvider>
       </body>
     </html>

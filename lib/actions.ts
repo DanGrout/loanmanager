@@ -20,7 +20,10 @@ const LoanSchema = z.object({
   borrowerName: z.string().min(1, "Borrower name is required"),
   borrowerEmail: z.string().email("Invalid email address"),
   description: z.string().optional(),
-  creditScore: z.coerce.number().min(300).max(850).optional(),
+  creditScore: z.preprocess(
+    (val) => (val === "" ? undefined : Number(val)),
+    z.number().min(300, "Credit score must be at least 300").max(850, "Credit score cannot exceed 850").optional()
+  ),
   collateral: z.coerce.number().min(0).optional(),
 })
 
