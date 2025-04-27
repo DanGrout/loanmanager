@@ -1,14 +1,40 @@
+/**
+ * @fileoverview A component that visualizes the risk level of a loan through a combination
+ * of color-coded indicators, progress bars, and descriptive text.
+ */
+
 import { AlertTriangle, CheckCircle, AlertCircle, ShieldAlert } from "lucide-react"
 import { Progress } from "@/components/ui/progress"
 import type { RiskLevel } from "@/lib/data"
 
+/**
+ * Props for the RiskIndicator component
+ * @interface RiskIndicatorProps
+ * @property {number} score - The numerical risk score (0-100)
+ * @property {RiskLevel} level - The categorical risk level (low, medium, high, very-high)
+ */
 interface RiskIndicatorProps {
   score: number
   level: RiskLevel
 }
 
+/**
+ * RiskIndicator Component
+ * @component
+ * @param {RiskIndicatorProps} props - Component props
+ * @returns {JSX.Element} A visual representation of loan risk level
+ * 
+ * @description
+ * This component provides a comprehensive visual representation of a loan's risk level,
+ * combining numerical scores with categorical indicators. It uses color coding,
+ * icons, and descriptive text to communicate risk levels effectively.
+ */
 export default function RiskIndicator({ score, level }: RiskIndicatorProps) {
-  // Determine color based on risk level
+  /**
+   * Determines the appropriate text color class based on risk level
+   * @returns {string} Tailwind CSS class for text color
+   * @description Maps risk levels to appropriate color classes for text elements
+   */
   const getColorClass = () => {
     switch (level) {
       case "low":
@@ -24,7 +50,11 @@ export default function RiskIndicator({ score, level }: RiskIndicatorProps) {
     }
   }
 
-  // Determine progress bar color
+  /**
+   * Determines the appropriate progress bar color class based on risk level
+   * @returns {string} Tailwind CSS class for progress bar color
+   * @description Maps risk levels to appropriate color classes for the progress bar
+   */
   const getProgressColor = () => {
     switch (level) {
       case "low":
@@ -40,7 +70,11 @@ export default function RiskIndicator({ score, level }: RiskIndicatorProps) {
     }
   }
 
-  // Get icon based on risk level
+  /**
+   * Returns the appropriate icon component based on risk level
+   * @returns {JSX.Element | null} The risk level icon component
+   * @description Maps risk levels to their corresponding visual indicators
+   */
   const RiskIcon = () => {
     switch (level) {
       case "low":

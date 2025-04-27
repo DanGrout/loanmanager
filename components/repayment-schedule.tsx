@@ -1,3 +1,9 @@
+/**
+ * @fileoverview A component that displays and manages the repayment schedule for a loan.
+ * This component provides a detailed view of all payments, their status, and allows for
+ * status updates through an interactive interface.
+ */
+
 "use client"
 import { useState } from "react"
 import { updatePaymentAction } from "@/lib/actions"
@@ -8,11 +14,29 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast"
 import type { Payment } from "@/lib/data"
 
+/**
+ * Props for the RepaymentSchedule component
+ * @interface RepaymentScheduleProps
+ * @property {Payment[]} payments - Array of payment objects representing the loan's payment schedule
+ * @property {string} loanId - The unique identifier of the loan
+ */
 interface RepaymentScheduleProps {
   payments: Payment[]
   loanId: string
 }
 
+/**
+ * RepaymentSchedule Component
+ * @component
+ * @param {RepaymentScheduleProps} props - Component props
+ * @returns {JSX.Element} A table component displaying the loan's repayment schedule
+ * 
+ * @description
+ * This component renders a comprehensive view of a loan's repayment schedule,
+ * including payment details such as due dates, amounts, and status. It provides
+ * functionality to update payment statuses and displays visual indicators for
+ * different payment states.
+ */
 export default function RepaymentSchedule({ payments, loanId }: RepaymentScheduleProps) {
   const { toast } = useToast()
   const [updatingPaymentId, setUpdatingPaymentId] = useState<string | null>(null)
@@ -20,7 +44,12 @@ export default function RepaymentSchedule({ payments, loanId }: RepaymentSchedul
   // Sort payments by payment number
   const sortedPayments = [...payments].sort((a, b) => a.paymentNumber - b.paymentNumber)
 
-  // Function to handle payment status update
+  /**
+   * Updates the status of a payment
+   * @param {string} paymentId - The ID of the payment to update
+   * @param {"pending" | "paid" | "late" | "missed"} newStatus - The new status to set
+   * @description Handles the status update process, including loading state and error handling
+   */
   const handleStatusChange = async (paymentId: string, newStatus: "pending" | "paid" | "late" | "missed") => {
     setUpdatingPaymentId(paymentId)
 
@@ -50,7 +79,12 @@ export default function RepaymentSchedule({ payments, loanId }: RepaymentSchedul
     }
   }
 
-  // Function to get status icon
+  /**
+   * Returns the appropriate icon for a payment status
+   * @param {string} status - The payment status
+   * @returns {JSX.Element | null} The status icon component
+   * @description Maps payment statuses to their corresponding visual indicators
+   */
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "paid":
@@ -66,7 +100,11 @@ export default function RepaymentSchedule({ payments, loanId }: RepaymentSchedul
     }
   }
 
-  // Function to format date
+  /**
+   * Formats a date string into a localized date format
+   * @param {string} dateString - The date string to format
+   * @returns {string} The formatted date string
+   */
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString()
   }

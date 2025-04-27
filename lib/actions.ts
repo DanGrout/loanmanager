@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { createLoan, deleteLoan, updateLoan, updatePayment } from "@/lib/data"
 import { z } from "zod"
+import { prisma } from "@/lib/prisma"
 
 // Validation schema for loan data
 const LoanSchema = z.object({
@@ -47,6 +48,8 @@ export type FormState = {
 }
 
 export async function createLoanAction(prevState: FormState, formData: FormData): Promise<FormState> {
+  console.log('Server action: Processing form data')
+  
   // Validate form data
   const validatedFields = LoanSchema.safeParse({
     name: formData.get("name"),
@@ -65,6 +68,7 @@ export async function createLoanAction(prevState: FormState, formData: FormData)
 
   // Return errors if validation fails
   if (!validatedFields.success) {
+    console.log('Server action: Validation failed', validatedFields.error.flatten().fieldErrors)
     return {
       errors: validatedFields.error.flatten().fieldErrors,
       message: "Missing or invalid fields. Failed to create loan.",
@@ -72,13 +76,38 @@ export async function createLoanAction(prevState: FormState, formData: FormData)
   }
 
   try {
+    console.log('Server action: Creating loan with data', validatedFields.data)
+    
+    // Create or get user
+    const user = await prisma.user.upsert({
+      where: { email: validatedFields.data.borrowerEmail },
+      update: { name: validatedFields.data.borrowerName },
+      create: {
+        email: validatedFields.data.borrowerEmail,
+        name: validatedFields.data.borrowerName,
+      },
+    })
+
     // Create the loan
-    await createLoan(validatedFields.data)
+    const newLoan = await prisma.loan.create({
+      data: {
+        amount: validatedFields.data.amount,
+        interestRate: validatedFields.data.interestRate,
+        term: validatedFields.data.term,
+        status: validatedFields.data.status.toUpperCase() as any,
+        startDate: new Date(validatedFields.data.startDate),
+        endDate: new Date(validatedFields.data.endDate),
+        userId: user.id,
+      },
+    })
+
+    console.log('Server action: Loan created successfully', newLoan)
 
     // Revalidate the loans page and redirect
     revalidatePath("/loans")
     redirect("/loans")
   } catch (error) {
+    console.error('Server action: Error creating loan', error)
     return {
       errors: {
         _form: ["Failed to create loan. Please try again."],
