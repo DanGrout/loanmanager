@@ -1,5 +1,4 @@
 "use client"
-import { useActionState } from "react"
 import { useRouter } from "next/navigation"
 import { createLoanAction, updateLoanAction, type FormState } from "@/lib/actions"
 import type { Loan } from "@/lib/data"
@@ -12,6 +11,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { AlertCircle } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useState } from "react"
+import { useFormState, useFormStatus } from "react-dom"
 
 const initialState: FormState = {
   errors: {},
@@ -23,9 +23,9 @@ export default function LoanForm({ loan }: { loan?: Loan }) {
   const isEditing = !!loan
 
   // Create form action based on whether we're editing or creating
-  const formAction = isEditing ? updateLoanAction.bind(null, loan.id) : createLoanAction
+  const submitAction = isEditing ? updateLoanAction.bind(null, loan.id) : createLoanAction
 
-  const [state, dispatch] = useActionState(formAction, initialState)
+  const [state, dispatch] = useFormState(submitAction, initialState)
   const [formData, setFormData] = useState({
     name: loan?.name || "",
     amount: loan?.amount || "",
@@ -40,6 +40,8 @@ export default function LoanForm({ loan }: { loan?: Loan }) {
     creditScore: loan?.creditScore || "",
     collateral: loan?.collateral || "",
   })
+
+  const { pending } = useFormStatus()
 
   // Handle input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -56,12 +58,6 @@ export default function LoanForm({ loan }: { loan?: Loan }) {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const formData = new FormData(e.currentTarget)
-    
-    // Add all form data from state
-    Object.entries(formData).forEach(([key, value]) => {
-      formData.append(key, value)
-    })
-    
     dispatch(formData)
   }
 
