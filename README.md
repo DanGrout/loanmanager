@@ -85,25 +85,23 @@ A modern, full-stack loan management application built with Next.js, TypeScript,
 4. Create a `.env` file in the root directory with the following variables:
    ```
    # Database Configuration
-   DATABASE_URL="postgresql://user:password@localhost:5432/loanmanager"
-   
-   # Application Configuration
-   NODE_ENV="development"
-   PORT=3000
-   
-   # Authentication (if implemented)
-   JWT_SECRET="your-jwt-secret-key"
-   JWT_EXPIRES_IN="7d"
-   
-   # Email Configuration (if implemented)
-   SMTP_HOST="smtp.example.com"
-   SMTP_PORT=587
-   SMTP_USER="your-email@example.com"
-   SMTP_PASSWORD="your-email-password"
-   
-   # API Keys (if needed)
-   STRIPE_SECRET_KEY="your-stripe-secret-key"
-   STRIPE_WEBHOOK_SECRET="your-stripe-webhook-secret"
+    POSTGRES_USER=loanmanager
+    POSTGRES_PASSWORD=loanmanager123
+    POSTGRES_HOST=localhost
+    POSTGRES_PORT=5433
+    POSTGRES_DB=loanmanager
+    
+    # Node Environment
+    NODE_ENV=development
+    
+    # This was inserted by `prisma init`:
+    # Environment variables declared in this file are automatically made available to Prisma.
+    # See the documentation for more detail: https://pris.ly/d/prisma-schema#accessing-environment-variables-from-the-schema
+    
+    # Prisma supports the native connection string format for PostgreSQL, MySQL, SQLite, SQL Server, MongoDB and CockroachDB.
+    # See the documentation for all the connection string options: https://pris.ly/d/connection-strings
+    
+    DATABASE_URL="postgresql://postgres:postgres@localhost:5433/loan_manager?schema=public"
    ```
 
    > **Note**: Replace the placeholder values with your actual configuration values. Never commit the `.env` file to version control.
