@@ -1,7 +1,12 @@
-import { PrismaClient } from '../lib/generated/prisma'
+import { PrismaClient } from '@prisma/client'
 
-// Create a single PrismaClient instance for the entire application
-const prisma = new PrismaClient()
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined
+}
+
+export const prisma = globalForPrisma.prisma ?? new PrismaClient()
+
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 
 // Ensure we're not storing anything in memory by disconnecting after each operation
 export async function withPrisma<T>(operation: (prisma: PrismaClient) => Promise<T>): Promise<T> {

@@ -5,7 +5,7 @@ const pool = new Pool({
   host: 'localhost',
   database: 'loan_manager',
   password: 'postgres',
-  port: 5432,
+  port: 5433,
 });
 
 async function testDatabase() {

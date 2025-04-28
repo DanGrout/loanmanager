@@ -27,7 +27,7 @@ const LoanSchema = z.object({
   ),
   collateral: z.coerce.number().min(0).optional(),
 })
-
+console.log('Form 1')
 export type FormState = {
   errors?: {
     name?: string[]
@@ -47,8 +47,8 @@ export type FormState = {
   message?: string
 }
 
-export async function createLoanAction(prevState: FormState, formData: FormData): Promise<FormState> {
-  console.log('Server action: Processing form data')
+export async function createLoanAction(formData: FormData): Promise<void> {
+  console.log('Server action: Starting createLoanAction')
   
   // Validate form data
   const validatedFields = LoanSchema.safeParse({
@@ -65,16 +65,13 @@ export async function createLoanAction(prevState: FormState, formData: FormData)
     creditScore: formData.get("creditScore"),
     collateral: formData.get("collateral"),
   })
-
+  
   // Return errors if validation fails
   if (!validatedFields.success) {
     console.log('Server action: Validation failed', validatedFields.error.flatten().fieldErrors)
-    return {
-      errors: validatedFields.error.flatten().fieldErrors,
-      message: "Missing or invalid fields. Failed to create loan.",
-    }
+    throw new Error("Missing or invalid fields. Failed to create loan.")
   }
-
+  
   try {
     console.log('Server action: Creating loan with data', validatedFields.data)
     
@@ -87,7 +84,9 @@ export async function createLoanAction(prevState: FormState, formData: FormData)
         name: validatedFields.data.borrowerName,
       },
     })
-
+    
+    console.log('Server action: User created/updated', user)
+    
     // Create the loan
     const newLoan = await prisma.loan.create({
       data: {
@@ -108,15 +107,15 @@ export async function createLoanAction(prevState: FormState, formData: FormData)
     redirect("/loans")
   } catch (error) {
     console.error('Server action: Error creating loan', error)
-    return {
-      errors: {
-        _form: ["Failed to create loan. Please try again."],
-      },
+    if (error instanceof Error) {
+      console.error('Error details:', error.message)
+      console.error('Error stack:', error.stack)
     }
+    throw new Error("Failed to create loan. Please try again.")
   }
 }
 
-export async function updateLoanAction(id: string, prevState: FormState, formData: FormData): Promise<FormState> {
+export async function updateLoanAction(id: string, formData: FormData): Promise<void> {
   // Validate form data
   const validatedFields = LoanSchema.safeParse({
     name: formData.get("name"),
@@ -135,10 +134,7 @@ export async function updateLoanAction(id: string, prevState: FormState, formDat
 
   // Return errors if validation fails
   if (!validatedFields.success) {
-    return {
-      errors: validatedFields.error.flatten().fieldErrors,
-      message: "Missing or invalid fields. Failed to update loan.",
-    }
+    throw new Error("Missing or invalid fields. Failed to update loan.")
   }
 
   try {
@@ -150,15 +146,11 @@ export async function updateLoanAction(id: string, prevState: FormState, formDat
     revalidatePath("/loans")
     redirect(`/loans/${id}`)
   } catch (error) {
-    return {
-      errors: {
-        _form: ["Failed to update loan. Please try again."],
-      },
-    }
+    throw new Error("Failed to update loan. Please try again.")
   }
 }
 
-export async function deleteLoanAction(id: string) {
+export async function deleteLoanAction(id: string): Promise<void> {
   try {
     await deleteLoan(id)
     revalidatePath("/loans")
@@ -174,13 +166,12 @@ export async function updatePaymentAction(
   paymentId: string,
   status: "pending" | "paid" | "late" | "missed",
   loanId: string,
-) {
+): Promise<void> {
   try {
     await updatePayment(paymentId, status)
     revalidatePath(`/loans/${loanId}`)
-    return { success: true }
   } catch (error) {
     console.error("Failed to update payment:", error)
-    return { success: false, error: "Failed to update payment" }
+    throw new Error("Failed to update payment")
   }
 }

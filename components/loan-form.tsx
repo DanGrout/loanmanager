@@ -4,28 +4,20 @@
  */
 
 "use client"
+
 import { useRouter } from "next/navigation"
-import { createLoanAction, updateLoanAction, type FormState } from "@/lib/actions"
+import { createLoanAction, updateLoanAction } from "@/lib/actions"
 import type { Loan } from "@/lib/data"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent } from "@/components/ui/card"
 import { AlertCircle } from "lucide-react"
-import { useState } from "react"
-import { useActionState } from "react"
 import { useFormStatus } from "react-dom"
+import { useState } from "react"
 
-/**
- * Initial state for the form, containing error messages and form status
- * @type {FormState}
- */
-const initialState: FormState = {
-  errors: {},
-  message: "",
-}
+type LoanStatus = "pending" | "active" | "paid" | "defaulted"
 
 /**
  * LoanForm Component
@@ -42,88 +34,26 @@ const initialState: FormState = {
 export default function LoanForm({ loan }: { loan?: Loan }) {
   const router = useRouter()
   const isEditing = !!loan
-
-  // Create form action based on whether we're editing or creating
-  const submitAction = isEditing ? updateLoanAction.bind(null, loan.id) : createLoanAction
-
-  const [state, dispatch] = useActionState(submitAction, initialState)
-  const [formData, setFormData] = useState({
-    name: loan?.name || "",
-    amount: loan?.amount || "",
-    interestRate: loan?.interestRate || "",
-    term: loan?.term || "",
-    status: loan?.status || "pending",
-    startDate: loan ? new Date(loan.startDate).toISOString().split("T")[0] : "",
-    endDate: loan ? new Date(loan.endDate).toISOString().split("T")[0] : "",
-    borrowerName: loan?.borrowerName || "",
-    borrowerEmail: loan?.borrowerEmail || "",
-    description: loan?.description || "",
-    creditScore: loan?.creditScore || "",
-    collateral: loan?.collateral || "",
-  })
-
   const { pending } = useFormStatus()
+  const [error, setError] = useState<string | null>(null)
+  const [status, setStatus] = useState<LoanStatus>(loan?.status as LoanStatus || "pending")
 
-  /**
-   * Handles changes to input fields in the form
-   * @param {React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>} e - The change event
-   * @description Updates the form state with the new input value while preserving other fields
-   */
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
-  }
-
-  /**
-   * Handles changes to select fields in the form
-   * @param {string} name - The name of the select field
-   * @param {string} value - The new selected value
-   * @description Updates the form state with the new selected value while preserving other fields
-   */
-  const handleSelectChange = (name: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [name]: value }))
-  }
-
-  /**
-   * Handles form submission
-   * @param {FormData} formData - The form data
-   * @description Handles the form submission and logs any errors
-   */
-  const handleFormAction = async (formData: FormData) => {
-    console.log('Form data being submitted:', {
-      name: formData.get('name'),
-      amount: formData.get('amount'),
-      interestRate: formData.get('interestRate'),
-      term: formData.get('term'),
-      status: formData.get('status'),
-      startDate: formData.get('startDate'),
-      endDate: formData.get('endDate'),
-      borrowerName: formData.get('borrowerName'),
-      borrowerEmail: formData.get('borrowerEmail'),
-      description: formData.get('description'),
-      creditScore: formData.get('creditScore'),
-      collateral: formData.get('collateral'),
-    })
-
+  const handleSubmit = async (formData: FormData) => {
     try {
-      const result = await dispatch(formData)
-      console.log('Form submission result:', result)
-
-      if (result?.errors) {
-        console.error('Form validation errors:', result.errors)
-      } else if (result?.message) {
-        console.log('Form submission message:', result.message)
+      if (isEditing) {
+        await updateLoanAction(loan.id, formData)
+      } else {
+        await createLoanAction(formData)
       }
-    } catch (error) {
-      console.error('Error submitting form:', error)
+      // The redirect will be handled by the server action
+    } catch (err) {
+      // Only set error if it's not a redirect
+      if (!(err instanceof Error && err.message === "NEXT_REDIRECT")) {
+        setError(err instanceof Error ? err.message : "An unexpected error occurred")
+      }
     }
   }
 
-  /**
-   * Handles cancellation of form submission
-   * @description Redirects the user back to the appropriate page based on whether
-   * they were editing an existing loan or creating a new one
-   */
   const handleCancel = () => {
     if (isEditing) {
       router.push(`/loans/${loan.id}`)
@@ -133,7 +63,13 @@ export default function LoanForm({ loan }: { loan?: Loan }) {
   }
 
   return (
-    <form action={handleFormAction}>
+    <form action={handleSubmit}>
+      {error && (
+        <div className="mb-6 p-4 bg-destructive/10 text-destructive rounded-md">
+          <AlertCircle className="inline-block mr-2 h-4 w-4" />
+          {error}
+        </div>
+      )}
       <div className="space-y-6">
         <Card>
           <CardContent className="pt-6">
@@ -143,16 +79,8 @@ export default function LoanForm({ loan }: { loan?: Loan }) {
                 <Input
                   id="name"
                   name="name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  aria-describedby="name-error"
+                  defaultValue={loan?.name || ""}
                 />
-                {state.errors?.name && (
-                  <p id="name-error" className="text-sm text-destructive flex items-center">
-                    <AlertCircle className="h-4 w-4 mr-1" />
-                    {state.errors.name}
-                  </p>
-                )}
               </div>
 
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -164,16 +92,8 @@ export default function LoanForm({ loan }: { loan?: Loan }) {
                     type="number"
                     step="0.01"
                     min="0"
-                    value={formData.amount}
-                    onChange={handleInputChange}
-                    aria-describedby="amount-error"
+                    defaultValue={loan?.amount || ""}
                   />
-                  {state.errors?.amount && (
-                    <p id="amount-error" className="text-sm text-destructive flex items-center">
-                      <AlertCircle className="h-4 w-4 mr-1" />
-                      {state.errors.amount}
-                    </p>
-                  )}
                 </div>
 
                 <div className="grid gap-3">
@@ -185,16 +105,8 @@ export default function LoanForm({ loan }: { loan?: Loan }) {
                     step="0.01"
                     min="0"
                     max="100"
-                    value={formData.interestRate}
-                    onChange={handleInputChange}
-                    aria-describedby="interestRate-error"
+                    defaultValue={loan?.interestRate || ""}
                   />
-                  {state.errors?.interestRate && (
-                    <p id="interestRate-error" className="text-sm text-destructive flex items-center">
-                      <AlertCircle className="h-4 w-4 mr-1" />
-                      {state.errors.interestRate}
-                    </p>
-                  )}
                 </div>
               </div>
 
@@ -206,41 +118,24 @@ export default function LoanForm({ loan }: { loan?: Loan }) {
                     name="term"
                     type="number"
                     min="1"
-                    value={formData.term}
-                    onChange={handleInputChange}
-                    aria-describedby="term-error"
+                    defaultValue={loan?.term || ""}
                   />
-                  {state.errors?.term && (
-                    <p id="term-error" className="text-sm text-destructive flex items-center">
-                      <AlertCircle className="h-4 w-4 mr-1" />
-                      {state.errors.term}
-                    </p>
-                  )}
                 </div>
 
                 <div className="grid gap-3">
                   <Label htmlFor="status">Status</Label>
-                  <Select
+                  <select
+                    id="status"
                     name="status"
-                    value={formData.status}
-                    onValueChange={(value) => handleSelectChange("status", value)}
+                    value={status}
+                    onChange={(e) => setStatus(e.target.value as LoanStatus)}
+                    className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                   >
-                    <SelectTrigger id="status" aria-describedby="status-error">
-                      <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="paid">Paid</SelectItem>
-                      <SelectItem value="defaulted">Defaulted</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {state.errors?.status && (
-                    <p id="status-error" className="text-sm text-destructive flex items-center">
-                      <AlertCircle className="h-4 w-4 mr-1" />
-                      {state.errors.status}
-                    </p>
-                  )}
+                    <option value="pending">Pending</option>
+                    <option value="active">Active</option>
+                    <option value="paid">Paid</option>
+                    <option value="defaulted">Defaulted</option>
+                  </select>
                 </div>
               </div>
 
@@ -251,16 +146,8 @@ export default function LoanForm({ loan }: { loan?: Loan }) {
                     id="startDate"
                     name="startDate"
                     type="date"
-                    value={formData.startDate}
-                    onChange={handleInputChange}
-                    aria-describedby="startDate-error"
+                    defaultValue={loan ? new Date(loan.startDate).toISOString().split("T")[0] : ""}
                   />
-                  {state.errors?.startDate && (
-                    <p id="startDate-error" className="text-sm text-destructive flex items-center">
-                      <AlertCircle className="h-4 w-4 mr-1" />
-                      {state.errors.startDate}
-                    </p>
-                  )}
                 </div>
 
                 <div className="grid gap-3">
@@ -269,16 +156,8 @@ export default function LoanForm({ loan }: { loan?: Loan }) {
                     id="endDate"
                     name="endDate"
                     type="date"
-                    value={formData.endDate}
-                    onChange={handleInputChange}
-                    aria-describedby="endDate-error"
+                    defaultValue={loan ? new Date(loan.endDate).toISOString().split("T")[0] : ""}
                   />
-                  {state.errors?.endDate && (
-                    <p id="endDate-error" className="text-sm text-destructive flex items-center">
-                      <AlertCircle className="h-4 w-4 mr-1" />
-                      {state.errors.endDate}
-                    </p>
-                  )}
                 </div>
               </div>
 
@@ -287,16 +166,8 @@ export default function LoanForm({ loan }: { loan?: Loan }) {
                 <Input
                   id="borrowerName"
                   name="borrowerName"
-                  value={formData.borrowerName}
-                  onChange={handleInputChange}
-                  aria-describedby="borrowerName-error"
+                  defaultValue={loan?.borrowerName || ""}
                 />
-                {state.errors?.borrowerName && (
-                  <p id="borrowerName-error" className="text-sm text-destructive flex items-center">
-                    <AlertCircle className="h-4 w-4 mr-1" />
-                    {state.errors.borrowerName}
-                  </p>
-                )}
               </div>
 
               <div className="grid gap-3">
@@ -305,85 +176,55 @@ export default function LoanForm({ loan }: { loan?: Loan }) {
                   id="borrowerEmail"
                   name="borrowerEmail"
                   type="email"
-                  value={formData.borrowerEmail}
-                  onChange={handleInputChange}
-                  aria-describedby="borrowerEmail-error"
+                  defaultValue={loan?.borrowerEmail || ""}
                 />
-                {state.errors?.borrowerEmail && (
-                  <p id="borrowerEmail-error" className="text-sm text-destructive flex items-center">
-                    <AlertCircle className="h-4 w-4 mr-1" />
-                    {state.errors.borrowerEmail}
-                  </p>
-                )}
+              </div>
+
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                <div className="grid gap-3">
+                  <Label htmlFor="creditScore">Credit Score</Label>
+                  <Input
+                    id="creditScore"
+                    name="creditScore"
+                    type="number"
+                    min="300"
+                    max="850"
+                    defaultValue={loan?.creditScore || ""}
+                  />
+                </div>
+
+                <div className="grid gap-3">
+                  <Label htmlFor="collateral">Collateral Value ($)</Label>
+                  <Input
+                    id="collateral"
+                    name="collateral"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    defaultValue={loan?.collateral || ""}
+                  />
+                </div>
               </div>
 
               <div className="grid gap-3">
-                <Label htmlFor="creditScore">Borrower Credit Score (300-850)</Label>
-                <Input
-                  id="creditScore"
-                  name="creditScore"
-                  type="number"
-                  min="300"
-                  max="850"
-                  value={formData.creditScore}
-                  onChange={handleInputChange}
-                  aria-describedby="creditScore-error"
-                />
-                {state.errors?.creditScore && (
-                  <p id="creditScore-error" className="text-sm text-destructive flex items-center">
-                    <AlertCircle className="h-4 w-4 mr-1" />
-                    {state.errors.creditScore}
-                  </p>
-                )}
-              </div>
-
-              <div className="grid gap-3">
-                <Label htmlFor="collateral">Collateral Value ($)</Label>
-                <Input
-                  id="collateral"
-                  name="collateral"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={formData.collateral}
-                  onChange={handleInputChange}
-                  aria-describedby="collateral-error"
-                />
-                {state.errors?.collateral && (
-                  <p id="collateral-error" className="text-sm text-destructive flex items-center">
-                    <AlertCircle className="h-4 w-4 mr-1" />
-                    {state.errors.collateral}
-                  </p>
-                )}
-              </div>
-
-              <div className="grid gap-3">
-                <Label htmlFor="description">Description (Optional)</Label>
+                <Label htmlFor="description">Description</Label>
                 <Textarea
                   id="description"
                   name="description"
                   rows={3}
-                  value={formData.description}
-                  onChange={handleInputChange}
-                  aria-describedby="description-error"
+                  defaultValue={loan?.description || ""}
                 />
-                {state.errors?.description && (
-                  <p id="description-error" className="text-sm text-destructive flex items-center">
-                    <AlertCircle className="h-4 w-4 mr-1" />
-                    {state.errors.description}
-                  </p>
-                )}
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <div className="flex justify-end gap-4">
+        <div className="flex items-center gap-4">
+          <Button type="submit" disabled={pending}>
+            {isEditing ? (pending ? "Saving..." : "Save Changes") : (pending ? "Creating..." : "Create Loan")}
+          </Button>
           <Button type="button" variant="outline" onClick={handleCancel}>
             Cancel
-          </Button>
-          <Button type="submit" disabled={pending}>
-            {pending ? "Submitting..." : isEditing ? "Update Loan" : "Create Loan"}
           </Button>
         </div>
       </div>
